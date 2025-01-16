@@ -165,17 +165,12 @@ h2 {
   }
 
   #center-map-btn {
-    font-size: 0.7em;
-    padding: 6px;
-    position: absolute;
-    z-index: 1000;
-    top: 10px;
-    right: 10px;
-    padding: 10px;
-    background-color: #2980b9;
-    color: white;
-    border: none;
-    cursor: pointer;
+    font-size: 0.8em;
+    padding: 8px;
+    top: 10px;  /* Move button to the top */
+    right: 10px; /* Move button to the right */
+    bottom: initial;  /* Remove bottom positioning */
+    left: initial;  /* Remove left positioning */
   }
 }
 
@@ -208,14 +203,9 @@ h2 {
   #center-map-btn {
     font-size: 0.7em;
     padding: 6px;
-    position: absolute;
-    z-index: 1000;
-    top: 10px;
-    right: 10px;
-    padding: 10px;
-    background-color: #2980b9;
-    color: white;
-    border: none;
-    cursor: pointer;
+    top: 10px;  /* Move button to the top */
+    right: 10px; /* Move button to the right */
+    bottom: initial;  /* Remove bottom positioning */
+    left: initial;  /* Remove left positioning */
   }
 }
