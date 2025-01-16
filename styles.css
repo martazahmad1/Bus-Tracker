@@ -128,8 +128,8 @@ h2 {
 #center-map-btn {
   position: absolute;
   z-index: 1000;
-  bottom: 10px;
-  left: 10px;
+  top: 10px;
+  right: 410px;
   padding: 10px;
   background-color: #2980b9;
   color: white;
@@ -169,8 +169,6 @@ h2 {
     padding: 8px;
     top: 10px;  /* Move button to the top */
     right: 10px; /* Move button to the right */
-    bottom: initial;  /* Remove bottom positioning */
-    left: initial;  /* Remove left positioning */
   }
 }
 
@@ -205,7 +203,5 @@ h2 {
     padding: 6px;
     top: 10px;  /* Move button to the top */
     right: 10px; /* Move button to the right */
-    bottom: initial;  /* Remove bottom positioning */
-    left: initial;  /* Remove left positioning */
   }
 }
