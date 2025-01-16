@@ -171,7 +171,7 @@ function updateSidebarInfo(locationData) {
           console.error("Error centering map:", error);
         }
       });
-    }
+    } 
 
     dataContainer.appendChild(busCard);
   }
