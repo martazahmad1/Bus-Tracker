@@ -5,16 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="shortcut icon" href="https://seeklogo.com/images/G/government-college-university-faisalabad-logo-5D9C68DF8A-seeklogo.com.png" type="image/x-icon">
     <title>University Bus Tracking</title>
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
     <link rel="stylesheet" href="styles.css" />
+    <script src="https://maps.gomaps.pro/maps/api/js?key=AlzaSyqG3G5aTLneP4rwleApD1w9Xu0L1FgSrKi"></script>
   </head>
   <body>
     <div class="container">
-      <button id="center-map-btn">Center Map</button>
-      <div id="map"></div>
+      <div class="map-container">
+        <div id="map"></div>
+        <button id="center-map-btn" class="center-button">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          Center Bus
+        </button>
+      </div>
       <div class="sidebar">
         <h2>Live Bus Tracking</h2>
         <div id="data-container">
@@ -22,7 +27,6 @@
         </div>
       </div>
     </div>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

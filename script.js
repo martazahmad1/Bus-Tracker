@@ -1,34 +1,108 @@
-// Initialize the map with a default center (will be updated with the first API response)
+// Initialize map and markers as global variables
 let map;
-try {
-  map = L.map("map").setView([0, 0], 35);
+let busMarker = null;
+let isFirstUpdate = true;
+let directionsService;
+let directionsRenderer1;
+let directionsRenderer2;
 
-  // Add Mapbox tiles
-  L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFydGF6YWhtYWQiLCJhIjoiY201emFmZXA3MDBxdDJ4cjB3czFlaXBiaCJ9.4yiETNVYRuKk8Pa6qITo3A", {
-    attribution: '© Mapbox © OpenStreetMap contributors',
-  }).addTo(map);
+// Initialize the map
+try {
+  // Initialize the map
+  map = new google.maps.Map(document.getElementById("map"), {
+    zoom: 12,
+    center: { lat: 31.7209, lng: 72.9780 }, // GCUF Chiniot coordinates
+    mapTypeId: google.maps.MapTypeId.ROADMAP,
+  });
+
+  // Initialize the Directions service and renderer
+  directionsService = new google.maps.DirectionsService();
+  directionsRenderer1 = new google.maps.DirectionsRenderer({
+    map: map,
+    polylineOptions: {
+      strokeColor: "#2980b9",
+      strokeWeight: 6,
+      strokeOpacity: 0.8
+    }
+  });
+  directionsRenderer2 = new google.maps.DirectionsRenderer({
+    map: map,
+    polylineOptions: {
+      strokeColor: "#27ae60",
+      strokeWeight: 3,
+      strokeOpacity: 0.7
+    }
+  });
+
+  // Define waypoints for the first route
+  const route1Waypoints = [
+    { location: { lat: 31.7550, lng: 72.9692 } }, // Via Chiniot Road
+    { location: { lat: 31.7689, lng: 72.9520 } }, // Intermediate point
+    { location: { lat: 31.7831, lng: 72.9350 } }, // Intermediate point
+  ];
+
+  // Define waypoints for the second route
+  const route2Waypoints = [
+    { location: { lat: 31.8312, lng: 72.9012 } }, // Via Chenab Road
+    { location: { lat: 31.8456, lng: 72.8891 } }, // Intermediate point
+    { location: { lat: 31.8567, lng: 72.8789 } }, // Intermediate point
+  ];
+
+  // Calculate and display the first route
+  const route1Request = {
+    origin: { lat: 31.6991, lng: 72.9782 }, // GCUF Chiniot
+    destination: { lat: 31.7529, lng: 72.9115 }, // Aqsa Chowk Rabwah
+    waypoints: route1Waypoints,
+    travelMode: google.maps.TravelMode.DRIVING
+  };
+
+  directionsService.route(route1Request, (result, status) => {
+    if (status === google.maps.DirectionsStatus.OK) {
+      directionsRenderer1.setDirections(result);
+    }
+  });
+
+  // Calculate and display the second route
+  const route2Request = {
+    origin: { lat: 31.7529, lng: 72.9115 }, // Aqsa Chowk Rabwah
+    destination: { lat: 31.7849, lng: 72.8857 }, // Ahmad Nagar
+    waypoints: route2Waypoints,
+    travelMode: google.maps.TravelMode.DRIVING
+  };
+
+  directionsService.route(route2Request, (result, status) => {
+    if (status === google.maps.DirectionsStatus.OK) {
+      directionsRenderer2.setDirections(result);
+    }
+  });
+
+  // Add markers for important locations
+  new google.maps.Marker({
+    position: { lat: 31.6991, lng: 72.9782 },
+    map: map,
+    title: "GCUF Chiniot",
+    label: "GCUF"
+  });
+
+  new google.maps.Marker({
+    position: { lat: 31.7529, lng: 72.9115 },
+    map: map,
+    title: "Aqsa Chowk Rabwah",
+    label: "AqsaChowk"
+  });
+
+  new google.maps.Marker({
+    position: { lat: 31.7849, lng: 72.8857 },
+    map: map,
+    title: "Ahmad Nagar",
+    label: "Ahmad Nagar"
+  });
+
 } catch (error) {
   console.error("Error initializing map:", error);
-  // Add a visible error message to the page
   document.getElementById("map").innerHTML =
     '<div class="map-error">Error loading map</div>';
 }
-
-// Object to store bus marker (since we're tracking one bus)
-let busMarker = null;
-let isFirstUpdate = true; // Flag to check if it's the first update
-
-// Custom bus icon with SVG
-const busIcon = L.divIcon({
-  className: "bus-icon",
-  html: `<div class="bus-pointer">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#2980b9" width="32" height="32">
-                <path d="M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10zm3.5 1c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-            </svg>
-        </div>`,
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-});
 
 // Function to fetch bus location data from API
 async function fetchBusLocation() {
@@ -36,13 +110,11 @@ async function fetchBusLocation() {
     const response = await fetch(
       "http://16.171.19.250:5000/get-vertices",
       {
-        // Ensure that CORS is handled properly on the backend for this request to succeed
-        // You may need to update the backend to allow CORS
+        // Ensure that CORS is handled properly on the backend
       }
     );
 
     if (!response.ok) {
-      // Detailed error message from the server
       throw new Error("Fetching Error");
     }
 
@@ -55,48 +127,60 @@ async function fetchBusLocation() {
     }
   } catch (error) {
     console.error(error);
-    updateSidebarInfo(null); // Update sidebar to show connection error
+    updateSidebarInfo(null);
   }
 }
 
 // Function to start periodic updates
 function startPeriodicUpdates() {
   console.log("Starting periodic updates...");
-  // Fetch immediately when starting
   fetchBusLocation();
-
-  // Then fetch every 3 seconds
   const intervalId = setInterval(fetchBusLocation, 5000);
 
-  // Cleanup on page unload
   window.addEventListener("unload", () => {
     clearInterval(intervalId);
   });
 }
 
-// Function to update bus location with smooth animation
+// Function to update bus location
 function updateBusLocation(locationData) {
   try {
     const latitude = parseFloat(locationData.V1);
     const longitude = parseFloat(locationData.V2);
 
-    // Check if coordinates are valid numbers
     if (isNaN(latitude) || isNaN(longitude)) {
       throw new Error("Invalid coordinates received from API");
     }
 
+    const position = { lat: latitude, lng: longitude };
+
     if (!busMarker) {
-      busMarker = L.marker([latitude, longitude], {
-        icon: busIcon,
-      }).addTo(map);
+      // Create the bus marker with a custom icon
+      busMarker = new google.maps.Marker({
+        position: position,
+        map: map,
+        icon: {
+          url: 'https://maps.google.com/mapfiles/kml/shapes/bus.png',
+          scaledSize: new google.maps.Size(30, 30)
+        },
+        title: 'University Bus'
+      });
+
+      // Add info window for the bus
+      const infoWindow = new google.maps.InfoWindow({
+        content: '<b>University Bus</b>'
+      });
+
+      busMarker.addListener('click', () => {
+        infoWindow.open(map, busMarker);
+      });
     } else {
-      const startPos = busMarker.getLatLng();
-      const endPos = L.latLng(latitude, longitude);
-      animateMarker(busMarker, startPos, endPos, 500);
+      // Animate the marker movement
+      animateMarker(busMarker.getPosition(), position);
     }
 
     if (isFirstUpdate) {
-      map.setView([latitude, longitude], 35);
+      map.setCenter(position);
       isFirstUpdate = false;
     }
 
@@ -107,18 +191,18 @@ function updateBusLocation(locationData) {
 }
 
 // Function to animate marker movement
-function animateMarker(marker, startPos, endPos, duration) {
-  const frames = Math.min(Math.ceil(duration / 16), 100); // Max 100 frames
+function animateMarker(startPos, endPos) {
+  const frames = 50;
   let frame = 0;
 
   function animate() {
     frame++;
     const progress = frame / frames;
 
-    const lat = startPos.lat + (endPos.lat - startPos.lat) * progress;
-    const lng = startPos.lng + (endPos.lng - startPos.lng) * progress;
+    const lat = startPos.lat() + (endPos.lat - startPos.lat()) * progress;
+    const lng = startPos.lng() + (endPos.lng - startPos.lng()) * progress;
 
-    marker.setLatLng([lat, lng]);
+    busMarker.setPosition({ lat, lng });
 
     if (frame < frames) {
       requestAnimationFrame(animate);
@@ -155,17 +239,14 @@ function updateSidebarInfo(locationData) {
     busCard.className = "location-card";
     busCard.innerHTML = cardContent;
 
-    // Only add click event if we have valid location data
     if (locationData) {
       busCard.addEventListener("click", () => {
         try {
           const lat = parseFloat(locationData.V1);
           const lng = parseFloat(locationData.V2);
           if (!isNaN(lat) && !isNaN(lng)) {
-            map.setView([lat, lng], 35);
-            if (busMarker) {
-              busMarker.openPopup();
-            }
+            map.setCenter({ lat, lng });
+            map.setZoom(15);
           }
         } catch (error) {
           console.error("Error centering map:", error);
@@ -180,8 +261,9 @@ function updateSidebarInfo(locationData) {
 // Function to center the map on the current bus location
 function centerMap() {
   if (busMarker) {
-    const busLatLng = busMarker.getLatLng();
-    map.setView(busLatLng, 35); // Center the map on bus's location
+    const position = busMarker.getPosition();
+    map.setCenter(position);
+    map.setZoom(17);
   }
 }
 
@@ -190,17 +272,3 @@ document.getElementById("center-map-btn").addEventListener("click", centerMap);
 
 // Initialize when page loads
 window.addEventListener("load", startPeriodicUpdates);
-
-// Add some CSS styles for the bus icon
-const style = document.createElement("style");
-style.textContent = `
-  .bus-pointer {
-      font-size: 24px;
-      transition: transform 0.5s;
-  }
-
-  .bus-icon {
-      transition: transform 0.5s;
-  }
-`;
-document.head.appendChild(style);

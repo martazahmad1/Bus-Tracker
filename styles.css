@@ -4,66 +4,117 @@
   box-sizing: border-box;
 }
 
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
 .container {
   display: flex;
   height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.map-container {
+  flex: 1;
+  position: relative;
+  min-width: 0; /* Prevents flex item from overflowing */
 }
 
 #map {
-  flex: 3;
   height: 100%;
-  position: relative; /* Ensure button stays inside the map container */
+  width: 100%;
+}
+
+.center-button {
+  position: absolute;
+  bottom: 24px;
+  right: 60px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: white;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  color: #2c3e50;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
+
+.center-button:hover {
+  background-color: #f8f9fa;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+.center-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.center-button svg {
+  width: 20px;
+  height: 20px;
 }
 
 .sidebar {
-  flex: 1;
-  padding: 20px;
-  background-color: #f5f5f5;
+  width: 320px;
+  padding: 24px;
+  background-color: #f8f9fa;
   overflow-y: auto;
-  min-width: 300px;
-  max-width: 400px;
+  border-left: 1px solid #e9ecef;
 }
 
-h2 {
+.sidebar h2 {
   margin-bottom: 20px;
-  color: #333;
-  font-size: 1.5em; /* Font size for desktop */
+  color: #2c3e50;
+  font-size: 1.5rem;
+  font-weight: 600;
 }
 
 .location-card {
   background-color: white;
-  padding: 15px;
-  margin-bottom: 15px;
-  border-radius: 5px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: all 0.2s ease;
 }
 
 .location-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .location-card h3 {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   color: #2c3e50;
-  font-size: 1.2em; /* Font size for desktop */
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
 .location-card p {
-  color: #34495e;
+  color: #4a5568;
   margin-bottom: 8px;
-  font-size: 0.9em; /* Font size for desktop */
+  font-size: 0.95rem;
+  line-height: 1.4;
 }
 
-/* Add a status indicator */
+.location-card p:last-child {
+  margin-bottom: 0;
+}
+
 .status-indicator {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  margin-right: 5px;
+  margin-right: 6px;
 }
 
 .status-active {
@@ -74,134 +125,78 @@ h2 {
   background-color: #e74c3c;
 }
 
-.bus-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px !important;
-  height: 32px !important;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  padding: 4px;
-}
-
-.bus-pointer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  border: 2px solid #2980b9;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-/* Animation for location updates */
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-  100% {
-    transform: scale(1);
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 280px;
   }
 }
 
-.location-update {
-  animation: pulse 0.5s ease-out;
-}
-
-/* Update the bus icon styles */
-.bus-pointer svg {
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.2));
-  transition: transform 0.5s;
-}
-
-.bus-pointer:hover svg {
-  transform: scale(1.1);
-}
-
-/* Ensure the "Center Map" button stays inside the map container */
-#center-map-btn {
-  position: absolute;
-  z-index: 1000;
-  top: 10px;
-  right: 410px;
-  padding: 10px;
-  background-color: #2980b9;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-/* Media Queries for responsiveness */
 @media (max-width: 768px) {
-  /* Mobile Layout */
   .container {
     flex-direction: column;
   }
 
-  #map {
-    height: 60%;
+  .map-container {
+    height: 60vh;
   }
 
   .sidebar {
-    height: 40%;
+    width: 100%;
+    height: 40vh;
+    border-left: none;
+    border-top: 1px solid #e9ecef;
   }
 
-  h2 {
-    font-size: 1.2em;
+  .center-button {
+    bottom: 16px;
+    right: 16px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
   }
 
-  .location-card h3 {
-    font-size: 1em;
-  }
-
-  .location-card p {
-    font-size: 0.8em;
-  }
-
-  #center-map-btn {
-    font-size: 0.8em;
-    padding: 8px;
-    top: 10px;  /* Move button to the top */
-    right: 10px; /* Move button to the right */
+  .center-button svg {
+    width: 18px;
+    height: 18px;
   }
 }
 
 @media (max-width: 480px) {
-  /* Small mobile layout */
-  .container {
-    flex-direction: column;
-  }
-
-  #map {
-    height: 50%;
+  .map-container {
+    height: 50vh;
   }
 
   .sidebar {
-    height: 50%;
+    height: 50vh;
+    padding: 16px;
   }
 
-  h2 {
-    font-size: 1em;
+  .sidebar h2 {
+    font-size: 1.25rem;
+    margin-bottom: 16px;
+  }
+
+  .location-card {
+    padding: 12px;
+    margin-bottom: 12px;
   }
 
   .location-card h3 {
-    font-size: 0.9em;
+    font-size: 1rem;
+    margin-bottom: 8px;
   }
 
   .location-card p {
-    font-size: 0.75em;
+    font-size: 0.9rem;
   }
 
-  #center-map-btn {
-    font-size: 0.7em;
-    padding: 6px;
-    top: 10px;  /* Move button to the top */
-    right: 10px; /* Move button to the right */
+  .center-button {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+
+  .center-button svg {
+    width: 16px;
+    height: 16px;
   }
 }
