@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,13 +9,6 @@
     <script src="https://maps.gomaps.pro/maps/api/js?key=AlzaSyqG3G5aTLneP4rwleApD1w9Xu0L1FgSrKi"></script>
 </head>
 <body>
-    <div class="admin-login-overlay" id="adminLoginOverlay">
-        <div class="admin-login-container">
-            <h2>Admin Login</h2>
-            <input type="password" id="adminPassword" placeholder="Enter admin password">
-            <button onclick="login()">Login</button>
-        </div>
-    </div>
     <div class="container">
         <div class="map-container">
             <div id="map"></div>
@@ -30,26 +23,36 @@
         <div class="sidebar">
             <div class="sidebar-header">
                 <h2>Live Bus Tracking</h2>
-                <button id="admin-btn" class="admin-button">Admin Panel</button>
+                <button id="theme-toggle" class="theme-toggle">
+                    <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/>
+                        <line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/>
+                        <line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                    <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </button>
             </div>
             <div id="data-container">
                 <!-- Bus data will be inserted here -->
             </div>
-            <div id="admin-panel" class="admin-panel hidden">
-                <h3>Admin Panel</h3>
-                <div class="admin-controls">
-                    <button id="add-stop-btn">Add Stop</button>
-                    <button id="view-stops-btn">View Stops</button>
-                    <button id="logout-btn">Logout</button>
-                </div>
-                <div id="stops-list" class="stops-list hidden">
-                    <!-- Stops will be listed here -->
-                </div>
-                <div id="add-stop-form" class="add-stop-form hidden">
-                    <input type="text" id="stop-name" placeholder="Stop Name">
-                    <p>Click on the map to set location</p>
-                    <button id="save-stop-btn">Save Stop</button>
-                    <button id="cancel-add-stop">Cancel</button>
+            <div id="next-stop-container" class="next-stop-card">
+                <h3>Next Stop</h3>
+                <div class="next-stop-info">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 19V5M5 12l7-7 7 7"/>
+                    </svg>
+                    <div class="next-stop-details">
+                        <p class="next-stop-name">Loading...</p>
+                        <p class="next-stop-eta">Calculating ETA...</p>
+                    </div>
                 </div>
             </div>
         </div>

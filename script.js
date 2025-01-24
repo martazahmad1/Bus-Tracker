@@ -3,17 +3,161 @@ let map;
 let busMarker = null;
 let isFirstUpdate = true;
 let directionsService;
-let directionsRenderer1;
-let directionsRenderer2;
-let isAdmin = false;
-let isAddingStop = false;
-let tempMarker = null;
-let busStops = [];
-let routeRenderers = []; // Array to store multiple route renderers
-let showReturnRoute = false; // Flag to control return route visibility
+let routeRenderers = [];
+let currentStopIndex = 0;
+let showReturnRoute = false;
 
-// Admin password (in a real application, this should be handled securely on the server)
-const ADMIN_PASSWORD = "hello";
+// Theme handling
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateMapStyle(savedTheme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateMapStyle(newTheme);
+}
+
+function updateMapStyle(theme) {
+    if (map) {
+        const styles = theme === 'dark' ? [
+            { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+            {
+                featureType: "administrative.locality",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#d59563" }],
+            },
+            {
+                featureType: "poi",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#d59563" }],
+            },
+            {
+                featureType: "poi.park",
+                elementType: "geometry",
+                stylers: [{ color: "#263c3f" }],
+            },
+            {
+                featureType: "poi.park",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#6b9a76" }],
+            },
+            {
+                featureType: "road",
+                elementType: "geometry",
+                stylers: [{ color: "#38414e" }],
+            },
+            {
+                featureType: "road",
+                elementType: "geometry.stroke",
+                stylers: [{ color: "#212a37" }],
+            },
+            {
+                featureType: "road",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#9ca5b3" }],
+            },
+            {
+                featureType: "road.highway",
+                elementType: "geometry",
+                stylers: [{ color: "#746855" }],
+            },
+            {
+                featureType: "road.highway",
+                elementType: "geometry.stroke",
+                stylers: [{ color: "#1f2835" }],
+            },
+            {
+                featureType: "road.highway",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#f3d19c" }],
+            },
+            {
+                featureType: "transit",
+                elementType: "geometry",
+                stylers: [{ color: "#2f3948" }],
+            },
+            {
+                featureType: "transit.station",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#d59563" }],
+            },
+            {
+                featureType: "water",
+                elementType: "geometry",
+                stylers: [{ color: "#17263c" }],
+            },
+            {
+                featureType: "water",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#515c6d" }],
+            },
+            {
+                featureType: "water",
+                elementType: "labels.text.stroke",
+                stylers: [{ color: "#17263c" }],
+            },
+        ] : [];
+        
+        map.setOptions({ styles: styles });
+    }
+}
+
+// Define default bus stops
+const defaultStops = [
+    { name: "GCUF Chiniot", position: { lat: 31.7209, lng: 72.9780 } },
+    { name: "Chenab College", position: { lat: 31.7180, lng: 72.9760 } },
+    { name: "Jinnah Colony", position: { lat: 31.7150, lng: 72.9740 } },
+    { name: "City Terminal", position: { lat: 31.7120, lng: 72.9720 } }
+];
+
+// Define route colors
+const routeColors = [
+    "#2980b9", // Blue
+    "#27ae60", // Green
+    "#e74c3c", // Red
+    "#f39c12", // Orange
+];
+
+// Custom marker label class
+class MarkerLabel extends google.maps.OverlayView {
+    constructor(position, text, map) {
+        super();
+        this.position = position;
+        this.text = text;
+        this.setMap(map);
+    }
+
+    onAdd() {
+        this.div = document.createElement('div');
+        this.div.className = 'custom-marker-label';
+        this.div.textContent = this.text;
+        
+        const panes = this.getPanes();
+        panes.overlayLayer.appendChild(this.div);
+    }
+
+    draw() {
+        const overlayProjection = this.getProjection();
+        const position = overlayProjection.fromLatLngToDivPixel(this.position);
+        
+        this.div.style.left = (position.x - 50) + 'px';
+        this.div.style.top = (position.y - 50) + 'px';
+    }
+
+    onRemove() {
+        if (this.div) {
+            this.div.parentNode.removeChild(this.div);
+            this.div = null;
+        }
+    }
+}
 
 // Initialize the map
 try {
@@ -23,206 +167,94 @@ try {
         mapTypeId: google.maps.MapTypeId.ROADMAP,
     });
 
-    // Initialize the Directions service and renderer
+    // Initialize theme
+    initTheme();
+
+    // Initialize the Directions service
     directionsService = new google.maps.DirectionsService();
-    directionsRenderer1 = new google.maps.DirectionsRenderer({
-        map: map,
-        polylineOptions: {
-            strokeColor: "#2980b9",
-            strokeWeight: 6,
-            strokeOpacity: 0.8
-        }
-    });
-    directionsRenderer2 = new google.maps.DirectionsRenderer({
-        map: map,
-        polylineOptions: {
-            strokeColor: "#27ae60",
-            strokeWeight: 3,
-            strokeOpacity: 0.7
-        }
+
+    // Add markers for default stops
+    defaultStops.forEach((stop, index) => {
+        // Create the marker
+        const marker = new google.maps.Marker({
+            position: stop.position,
+            map: map,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor: routeColors[index % routeColors.length],
+                fillOpacity: 1,
+                strokeColor: '#ffffff',
+                strokeWeight: 2,
+            }
+        });
+
+        // Create an info window
+        const infoWindow = new google.maps.InfoWindow({
+            content: `<div class="marker-info-window">
+                        <h3>${stop.name}</h3>
+                        <p>Stop ${index + 1}</p>
+                     </div>`,
+            pixelOffset: new google.maps.Size(0, -30)
+        });
+
+        // Add hover listener
+        marker.addListener('mouseover', () => {
+            infoWindow.open(map, marker);
+        });
+
+        marker.addListener('mouseout', () => {
+            infoWindow.close();
+        });
+
+        // Create custom label
+        new MarkerLabel(stop.position, stop.name, map);
     });
 
-    // Add click event listener to map for adding stops
-    map.addListener('click', function(e) {
-        if (isAddingStop) {
-            const position = e.latLng;
-            if (tempMarker) {
-                tempMarker.setMap(null);
-            }
-            tempMarker = new google.maps.Marker({
-                position: position,
-                map: map,
-                draggable: true
-            });
-        }
-    });
+    // Initialize routes
+    updateRoutes();
 
 } catch (error) {
     console.error("Error initializing map:", error);
     document.getElementById("map").innerHTML = '<div class="map-error">Error loading map</div>';
 }
 
-// Admin Panel Functions
-function showAdminLogin() {
-    document.getElementById('adminLoginOverlay').style.display = 'flex';
-}
-
-function login() {
-    const password = document.getElementById('adminPassword').value;
-    if (password === ADMIN_PASSWORD) {
-        isAdmin = true;
-        document.getElementById('adminLoginOverlay').style.display = 'none';
-        document.getElementById('admin-panel').classList.remove('hidden');
-        document.getElementById('adminPassword').value = '';
-    } else {
-        alert('Invalid password');
-    }
-}
-
-function logout() {
-    isAdmin = false;
-    document.getElementById('admin-panel').classList.add('hidden');
-    cancelAddStop();
-}
-
-function showAddStopForm() {
-    document.getElementById('add-stop-form').classList.remove('hidden');
-    document.getElementById('stops-list').classList.add('hidden');
-    isAddingStop = true;
-}
-
-function cancelAddStop() {
-    isAddingStop = false;
-    if (tempMarker) {
-        tempMarker.setMap(null);
-        tempMarker = null;
-    }
-    document.getElementById('add-stop-form').classList.add('hidden');
-    document.getElementById('stop-name').value = '';
-}
-
-function saveStop() {
-    if (!tempMarker) {
-        alert('Please select a location on the map');
-        return;
-    }
-
-    const stopName = document.getElementById('stop-name').value;
-    if (!stopName) {
-        alert('Please enter a stop name');
-        return;
-    }
-
-    const position = tempMarker.getPosition();
-    const newStop = {
-        name: stopName,
-        position: {
-            lat: position.lat(),
-            lng: position.lng()
-        }
-    };
-
-    busStops.push(newStop);
-    
-    // Create a permanent marker for the stop
-    new google.maps.Marker({
-        position: newStop.position,
-        map: map,
-        title: newStop.name,
-        label: newStop.name
-    });
-
-    // Update routes
-    updateRoutes();
-
-    // Clear form and temporary marker
-    cancelAddStop();
-    showStopsList();
-}
-
-function showStopsList() {
-    const stopsList = document.getElementById('stops-list');
-    stopsList.classList.remove('hidden');
-    document.getElementById('add-stop-form').classList.add('hidden');
-
-    // Clear existing list
-    stopsList.innerHTML = '<h3>Bus Stops</h3>';
-
-    // Add each stop to the list
-    busStops.forEach((stop, index) => {
-        const stopItem = document.createElement('div');
-        stopItem.className = 'stop-item';
-        stopItem.innerHTML = `
-            <span>${stop.name}</span>
-            <button onclick="deleteStop(${index})">Delete</button>
-        `;
-        stopsList.appendChild(stopItem);
-    });
-}
-
-function deleteStop(index) {
-    if (confirm('Are you sure you want to delete this stop?')) {
-        busStops.splice(index, 1);
-        updateRoutes();
-        showStopsList();
-    }
-}
-
+// Function to clear all routes
 function clearAllRoutes() {
-    // Clear existing route renderers
     routeRenderers.forEach(renderer => {
         renderer.setMap(null);
     });
     routeRenderers = [];
 }
 
+// Function to update routes
 function updateRoutes() {
-    if (busStops.length < 2) return;
-
-    // Clear all existing routes
     clearAllRoutes();
 
-    // Define an array of colors for different route segments
-    const routeColors = [
-        "#2980b9", // Blue
-        "#27ae60", // Green
-        "#e74c3c", // Red
-        "#f39c12", // Orange
-        "#8e44ad", // Purple
-        "#16a085", // Teal
-        "#d35400", // Dark Orange
-        "#2c3e50", // Navy
-        "#c0392b", // Dark Red
-        "#1abc9c"  // Turquoise
-    ];
+    // Create routes between consecutive stops up to current position
+    for (let i = currentStopIndex; i < defaultStops.length - 1; i++) {
+        const start = defaultStops[i].position;
+        const end = defaultStops[i + 1].position;
 
-    // Create a route between each consecutive pair of stops
-    for (let i = 0; i < busStops.length - 1; i++) {
-        const start = busStops[i].position;
-        const end = busStops[i + 1].position;
-
-        // Create a new renderer for this route segment
         const renderer = new google.maps.DirectionsRenderer({
             map: map,
             polylineOptions: {
-                strokeColor: routeColors[i % routeColors.length], // Cycle through colors
+                strokeColor: routeColors[i % routeColors.length],
                 strokeWeight: 4,
                 strokeOpacity: 0.7
             },
-            suppressMarkers: true // Don't show default markers
+            suppressMarkers: true
         });
         routeRenderers.push(renderer);
 
-        // Calculate route for this segment
-        const routeRequest = {
+        const request = {
             origin: start,
             destination: end,
             travelMode: google.maps.TravelMode.DRIVING
         };
 
-        // Use closure to maintain correct renderer reference
         ((currentRenderer) => {
-            directionsService.route(routeRequest, (result, status) => {
+            directionsService.route(request, (result, status) => {
                 if (status === google.maps.DirectionsStatus.OK) {
                     currentRenderer.setDirections(result);
                 }
@@ -230,12 +262,12 @@ function updateRoutes() {
         })(renderer);
     }
 
-    // Only show return route if bus has reached last stop
-    if (showReturnRoute && busStops.length >= 2) {
+    // Show return route if bus is at last stop
+    if (showReturnRoute) {
         const returnRenderer = new google.maps.DirectionsRenderer({
             map: map,
             polylineOptions: {
-                strokeColor: routeColors[busStops.length - 1 % routeColors.length],
+                strokeColor: routeColors[3], // Orange for return route
                 strokeWeight: 4,
                 strokeOpacity: 0.7
             },
@@ -244,8 +276,8 @@ function updateRoutes() {
         routeRenderers.push(returnRenderer);
 
         const returnRequest = {
-            origin: busStops[busStops.length - 1].position,
-            destination: busStops[0].position,
+            origin: defaultStops[defaultStops.length - 1].position,
+            destination: defaultStops[0].position,
             travelMode: google.maps.TravelMode.DRIVING
         };
 
@@ -255,20 +287,57 @@ function updateRoutes() {
             }
         });
     }
+
+    // Update next stop information
+    updateNextStopInfo();
 }
 
-// Function to check if bus is near the last stop
-function isNearLastStop(busPosition) {
-    if (busStops.length === 0) return false;
-    
-    const lastStop = busStops[busStops.length - 1].position;
-    const distance = google.maps.geometry.spherical.computeDistanceBetween(
-        new google.maps.LatLng(busPosition.lat, busPosition.lng),
-        new google.maps.LatLng(lastStop.lat, lastStop.lng)
-    );
-    
-    // If bus is within 100 meters of last stop
-    return distance <= 100;
+// Function to update next stop information
+function updateNextStopInfo() {
+    const nextStopContainer = document.getElementById("next-stop-container");
+    const nextStopName = nextStopContainer.querySelector(".next-stop-name");
+    const nextStopEta = nextStopContainer.querySelector(".next-stop-eta");
+
+    if (currentStopIndex < defaultStops.length - 1) {
+        const nextStop = defaultStops[currentStopIndex + 1];
+        nextStopName.textContent = nextStop.name;
+        
+        // Calculate ETA (example calculation - you might want to use actual distance/speed)
+        const now = new Date();
+        const eta = new Date(now.getTime() + 15 * 60000); // Add 15 minutes
+        nextStopEta.textContent = `ETA: ${eta.toLocaleTimeString()}`;
+    } else if (showReturnRoute) {
+        nextStopName.textContent = defaultStops[0].name;
+        nextStopEta.textContent = "Returning to first stop";
+    } else {
+        nextStopName.textContent = "End of Route";
+        nextStopEta.textContent = "Route completed";
+    }
+}
+
+// Function to check if bus is near a stop
+function checkNearStop(busPosition) {
+    const threshold = 100; // meters
+    for (let i = currentStopIndex; i < defaultStops.length; i++) {
+        const stop = defaultStops[i];
+        const distance = google.maps.geometry.spherical.computeDistanceBetween(
+            new google.maps.LatLng(busPosition.lat, busPosition.lng),
+            new google.maps.LatLng(stop.position.lat, stop.position.lng)
+        );
+        
+        if (distance <= threshold) {
+            if (i === defaultStops.length - 1) {
+                // Bus reached last stop
+                showReturnRoute = true;
+            }
+            if (i > currentStopIndex) {
+                currentStopIndex = i;
+                updateRoutes();
+            }
+            return true;
+        }
+    }
+    return false;
 }
 
 // Function to fetch bus location data from API
@@ -321,15 +390,8 @@ function updateBusLocation(locationData) {
 
         const position = { lat: latitude, lng: longitude };
 
-        // Check if bus has reached last stop
-        const busAtLastStop = isNearLastStop(position);
-        if (busAtLastStop && !showReturnRoute) {
-            showReturnRoute = true;
-            updateRoutes(); // Update routes to show return path
-        } else if (!busAtLastStop && showReturnRoute) {
-            showReturnRoute = false;
-            updateRoutes(); // Update routes to hide return path
-        }
+        // Check if bus is near any stop
+        checkNearStop(position);
 
         if (!busMarker) {
             busMarker = new google.maps.Marker({
@@ -401,6 +463,7 @@ function updateSidebarInfo(locationData) {
                 ? `${locationData.V1}, ${locationData.V2}`
                 : "Waiting for data..."
         }</p>
+        <p><strong>Current Stop:</strong> ${defaultStops[currentStopIndex].name}</p>
     `;
 
     if (existingCard) {
@@ -428,6 +491,9 @@ function updateSidebarInfo(locationData) {
 
         dataContainer.appendChild(busCard);
     }
+
+    // Update next stop information
+    updateNextStopInfo();
 }
 
 // Function to center the map on the current bus location
@@ -441,12 +507,10 @@ function centerMap() {
 
 // Event Listeners
 document.getElementById("center-map-btn").addEventListener("click", centerMap);
-document.getElementById("admin-btn").addEventListener("click", showAdminLogin);
-document.getElementById("logout-btn").addEventListener("click", logout);
-document.getElementById("add-stop-btn").addEventListener("click", showAddStopForm);
-document.getElementById("view-stops-btn").addEventListener("click", showStopsList);
-document.getElementById("save-stop-btn").addEventListener("click", saveStop);
-document.getElementById("cancel-add-stop").addEventListener("click", cancelAddStop);
+document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
 
 // Initialize when page loads
-window.addEventListener("load", startPeriodicUpdates);
+window.addEventListener("load", () => {
+    startPeriodicUpdates();
+    initTheme();
+});
